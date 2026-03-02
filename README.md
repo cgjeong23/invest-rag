@@ -153,6 +153,7 @@ This demonstrates grounded refusal rather than hallucinated generation.
 ## Project Structure
 
 ---
+```
 invest-rag/
 ├── data/
 │   ├── README.md
@@ -231,6 +232,14 @@ invest-rag/
         ├── retrieval_logging.py
         ├── search_wrappers.py
         └── __init__.py
+```
+### Key Directories
+
+- `src/` – Core application logic (retrieval, LLM, evaluation)
+- `data/` – Processed chunks and sample SEC filings
+- `indexes/` – FAISS vector index artifacts
+- `eval/` – Retrieval evaluation outputs
+- `docs/` – Architecture and design documentation
 ---
 
 ## What This Demonstrates
