@@ -38,7 +38,7 @@ python scripts/make_chunks.py \
 ```
 
 ## 3️⃣ Run the Full Retrieval + Rerank Pipeline
-Create .env file as example
+Create .env file as example in the project folder
 ```
 python -m src.app.cli \
     --query "Which company discusses ecosystem lock-in as a competitive moat?" \
