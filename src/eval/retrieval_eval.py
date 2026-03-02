@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Callable, Iterable
+from tqdm import tqdm
 import numpy as np
 
 
@@ -43,13 +44,14 @@ def evaluate_retrieval(
     id_key: str = "doc_id",           # "doc_id" (doc-level) or "chunk_id" (chunk-level)
     dedupe: bool = True,            
     save_fail_path: Path | None = None,
+    label: str = "Evaluating"
 ):
     recalls: list[float] = []
     mrrs: list[float] = []
     fails: list[dict] = []
     skipped_no_gold = 0
 
-    for q in questions:
+    for q in tqdm(questions, desc=f"{label} | k={k}", ncols=100):
         qid = q["qid"]
         query = q["query"]
         gold = set(q.get("gold_doc_ids", []))  # 현재 질문 포맷 기준
@@ -111,6 +113,7 @@ def run_eval_suite(
     out_path: Path | None = None,
     id_key: str = "doc_id",
     dedupe: bool = True,
+    label: str = "Evaluating"
 ):
     suite = {"ks": list(ks), "results": {}}
 
@@ -122,6 +125,7 @@ def run_eval_suite(
             id_key=id_key,
             dedupe=dedupe,
             save_fail_path=None,
+            label=label
         )
         suite["results"][str(k)] = m
 

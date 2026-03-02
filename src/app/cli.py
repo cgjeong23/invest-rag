@@ -49,8 +49,8 @@ def main():
     vec_out = eval_dir / "results_vector_doc.json"
     rr_out  = eval_dir / "results_rerank_llm_doc.json"
 
-    vec_suite = run_eval_suite(questions, ks=(1, 3, 5, 10), search_fn=vector_search_fn, out_path=vec_out, id_key="doc_id", dedupe=True)
-    rr_suite  = run_eval_suite(questions, ks=(1, 3, 5, 10), search_fn=rerank_search_fn, out_path=rr_out,  id_key="doc_id", dedupe=True)
+    vec_suite = run_eval_suite(questions, ks=(1, 3, 5, 10), search_fn=vector_search_fn, out_path=vec_out, id_key="doc_id", dedupe=True, label='Vector')
+    rr_suite  = run_eval_suite(questions, ks=(1, 3, 5, 10), search_fn=rerank_search_fn, out_path=rr_out,  id_key="doc_id", dedupe=True, label='Rerank')
 
     v_mrr1 = vec_suite["results"]["1"]["mrr_at_k"]
     r_mrr1 = rr_suite["results"]["1"]["mrr_at_k"]
