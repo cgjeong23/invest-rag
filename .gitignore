@@ -1,0 +1,28 @@
+# virtual env
+venv/
+.venv/
+
+#local env
+.vscode/
+
+# python
+__pycache__/
+*.pyc
+.env
+
+# logs
+logs/
+
+# notebooks
+.ipynb_checkpoints/
+
+# data artifacts
+data/raw/
+data/processed/
+
+# vector indexes
+indexes/
+*.bin
+
+# OS
+.DS_Store

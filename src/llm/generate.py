@@ -13,7 +13,13 @@ def extract_cited_doc_ids(text: str) -> set[str]:
 def validate_citations(answer: str, retrieved: list[dict]) -> bool:
     valid = {r.get("doc_id") for r in retrieved if r.get("doc_id")}
     cited = extract_cited_doc_ids(answer)
-    return cited.issubset(valid)
+
+    # If the model says "not enough information", allow no citations
+    if "don't have enough information" in (answer or "").lower():
+        return True
+
+    # Otherwise require at least one citation, and all must be valid
+    return (len(cited) > 0) and cited.issubset(valid)
 
 def rag_generate(query: str, context: str, model: str = GEN_MODEL) -> str:
     system = (

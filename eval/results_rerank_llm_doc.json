@@ -1,0 +1,46 @@
+{
+  "ks": [
+    1,
+    3,
+    5,
+    10
+  ],
+  "results": {
+    "1": {
+      "k": 1,
+      "n": 40,
+      "n_scored": 40,
+      "skipped_no_gold": 0,
+      "recall_at_k": 0.875,
+      "mrr_at_k": 0.875,
+      "n_fail": 5
+    },
+    "3": {
+      "k": 3,
+      "n": 40,
+      "n_scored": 40,
+      "skipped_no_gold": 0,
+      "recall_at_k": 0.925,
+      "mrr_at_k": 0.9,
+      "n_fail": 3
+    },
+    "5": {
+      "k": 5,
+      "n": 40,
+      "n_scored": 40,
+      "skipped_no_gold": 0,
+      "recall_at_k": 0.95,
+      "mrr_at_k": 0.9125,
+      "n_fail": 2
+    },
+    "10": {
+      "k": 10,
+      "n": 40,
+      "n_scored": 40,
+      "skipped_no_gold": 0,
+      "recall_at_k": 0.975,
+      "mrr_at_k": 0.9208333333333332,
+      "n_fail": 1
+    }
+  }
+}

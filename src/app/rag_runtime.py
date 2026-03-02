@@ -1,4 +1,4 @@
-# src/app/pipeline.py
+# src/app/rag_runtime.py
 from __future__ import annotations
 
 from src.config import USE_RERANK_DEFAULT, K_VEC, K_CTX, RERANK_MODEL

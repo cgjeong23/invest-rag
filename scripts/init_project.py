@@ -1,7 +1,7 @@
 from pathlib import Path
 
 DIRS = [
-    "scripts"
+    "scripts",
     "notebooks",
     "data/samples",
     "data/processed",
