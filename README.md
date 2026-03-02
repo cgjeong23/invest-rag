@@ -44,7 +44,6 @@ python -m src.app.cli \
     --top_k 5 \
     --rerank
 ```
-If the FAISS index does not exist, it will be built automatically.
 ---
 
 ## Overview
