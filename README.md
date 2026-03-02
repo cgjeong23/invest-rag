@@ -7,6 +7,16 @@ Document-Level & Chunk-Level Benchmarking
 Strict Citation-Grounded Generation  
 
 ---
+## 🚀 Run the Full Pipeline (CLI)
+
+You can run the full retrieval + rerank pipeline from the command line:
+
+```bash
+python src/app/cli.py \
+    --query "Which company discusses ecosystem lock-in as a competitive moat?" \
+    --top_k 5 \
+    --rerank
+---
 
 ## Overview
 
