@@ -1,282 +1,164 @@
-# invest-rag
+# Designing a Measurable Retrieval System
 
-**Production-Structured RAG System with Measurable Retrieval Performance**
+## 🔬 Full Reproducibility & Technical Details
 
-Vector Retrieval + LLM Reranking  
-Document-Level & Chunk-Level Benchmarking  
-Strict Citation-Grounded Generation  
+For:
+- exact setup instructions
+- evaluation reproduction
+- FAISS index artifacts
+- directory structure
+- detailed implementation notes
 
----
-# 🚀 Run the Full Pipeline (CLI)
+See: [README_TECHNICAL.md](README_TECHNICAL.md)
 
-You can run the full retrieval + rerank pipeline from the command line.
+## From Deterministic Vector Search to LLM Reranking
 
----
+This project is not a notebook demo of RAG.
 
-## 1️⃣ Install
+It is a structured retrieval system built to answer one core question:
 
-```bash
-git clone https://github.com/cgjeong23/invest-rag.git
-cd invest-rag
+**How do we measure and systematically improve retrieval quality in
+production-like settings?**
 
-python -m venv venv
+Instead of focusing only on generation, this project isolates and
+evaluates:
 
-# Windows
-venv\Scripts\activate
+-   Vector retrieval behavior
+-   Ranking quality vs recall expansion
+-   Document-level vs chunk-level difficulty
+-   LLM reranking as ranking correction
+-   Citation-grounded generation
+-   Out-of-distribution safety behavior
 
-# macOS / Linux
-source venv/bin/activate
+------------------------------------------------------------------------
 
-pip install -e .
-```
+# Problem Framing
 
-## 2️⃣ Generate Chunks from Sample SEC Docs
-```
-python scripts/make_chunks.py \
-    --in_path data/samples/sec_docs.jsonl \
-    --out_path data/processed/chunks.jsonl
-```
+Most RAG demos: - Retrieve top-k - Pass to LLM - Hope for better answers
 
-## 3️⃣ Run the Full Retrieval + Rerank Pipeline
-Create .env file as example in the project folder
-```
-python -m src.app.cli \
-    --query "Which company discusses ecosystem lock-in as a competitive moat?" \
-    --top_k 5 \
-    --rerank
-```
----
+This system separates concerns:
 
-## Overview
+1.  Retrieval quality must be measurable.
+2.  Ranking quality matters more than increasing k.
+3.  Chunk-level retrieval is fundamentally harder than document-level
+    retrieval.
+4.  Hallucination must be structurally prevented, not prompt-controlled.
 
-`invest-rag` is a reproducible Retrieval-Augmented Generation (RAG) system built over multiple SEC 10-K filings (2024).
+------------------------------------------------------------------------
 
-The goal of this project is not just to implement RAG, but to:
+# System Overview
 
-- Quantitatively measure retrieval quality (Recall@k, MRR)
-- Compare vector-only retrieval vs LLM-based reranking
-- Evaluate document-level vs chunk-level behavior
-- Enforce strict citation grounding
-- Demonstrate safe out-of-distribution handling
+Pipeline:
 
-All components (retrieval, rerank, generation, evaluation) are modular and independently testable.
+SEC 10-K → Chunking → Embedding (L2 normalized) → FAISS (Inner Product)
+→ Vector Retrieval → Optional LLM Rerank → Grounded Generation
 
----
+All components are modular and independently testable.
 
-## Dataset
+------------------------------------------------------------------------
 
-Indexed SEC 10-K filings (2024):
+# Core Design Decisions
 
-- Apple
-- NVIDIA
-- Microsoft
-- Meta
-- AMD
+### 1. L2 Normalization + Inner Product (FAISS)
 
-Granularity:
+-   Converts cosine similarity into efficient inner product search.
+-   Enables deterministic similarity computation.
 
-- **Document-level:** SEC section (e.g., `apple_2024_item_1_business`)
-- **Chunk-level:** ~4000 deterministic semantic chunks
+Trade-off: - Requires strict normalization discipline.
 
-Each chunk contains:
+------------------------------------------------------------------------
 
-- chunk_id
-- doc_id
-- company
-- year
-- section
-- content
+### 2. Deterministic Chunk IDs
 
----
+-   Ensures reproducibility across rebuilds.
+-   Enables evaluation stability.
 
-## System Architecture
+------------------------------------------------------------------------
 
-                ┌────────────────────┐
-                │   SEC 10-K Files   │
-                └─────────┬──────────┘
-                          ↓
-                ┌────────────────────┐
-                │   Chunking Layer   │
-                │  (~4000 chunks)    │
-                └─────────┬──────────┘
-                          ↓
-                ┌────────────────────┐
-                │   Embedding Model  │
-                │ (L2 Normalization) │
-                └─────────┬──────────┘
-                          ↓
-                ┌────────────────────┐
-                │     FAISS Index    │
-                │   (Inner Product)  │
-                └─────────┬──────────┘
-                          ↓
-                ┌────────────────────┐
-                │   Vector Retrieval │
-                └─────────┬──────────┘
-                          ↓
-                ┌────────────────────┐
-                │   LLM Reranker     │ (optional)
-                └─────────┬──────────┘
-                          ↓
-                ┌────────────────────┐
-                │  Grounded Generate │
-                │ + Citation Check   │
-                └────────────────────┘
+### 3. Retrieval / Rerank / Generation Separation
 
----
+-   Retrieval is evaluated independently from generation.
+-   Allows benchmarking of ranking behavior without LLM noise.
 
-## Evaluation Results
+------------------------------------------------------------------------
 
-Evaluation benchmark: 40 curated cross-company questions.
+### 4. Ranking Correction, Not Recall Expansion
 
-### Document-Level Performance
+Evaluation results show:
 
-| k  | Vector R@k | Vector MRR | Rerank R@k | Rerank MRR | ΔRecall | ΔMRR |
-|----|------------|------------|------------|------------|---------|------|
-| 1  | 0.750 | 0.7500 | 0.875 | 0.8750 | +0.125 | +0.1250 |
-| 3  | 0.850 | 0.8000 | 0.925 | 0.9000 | +0.075 | +0.1000 |
-| 5  | 0.900 | 0.8188 | 0.950 | 0.9125 | +0.050 | +0.0938 |
-| 10 | 0.975 | 0.8375 | 0.975 | 0.9208 | +0.000 | +0.0833 |
+-   Vector retriever already achieves high recall at k=10.
+-   Reranking improves MRR significantly without increasing recall.
+-   Improvement comes from correcting ordering, not widening search.
 
-Key insight:
-- High recall from vector retriever (R@10 = 0.975)
-- Significant top-1 improvement from LLM reranking
-- Rerank improves ranking quality without increasing candidate depth
+This reflects real-world systems where latency constraints limit k.
 
----
+------------------------------------------------------------------------
 
-### Chunk-Level Performance
+# Evaluation Strategy
 
-| k  | Vector R@k | Vector MRR | Rerank R@k | Rerank MRR | ΔRecall | ΔMRR |
-|----|------------|------------|------------|------------|---------|------|
-| 1  | 0.150 | 0.1500 | 0.350 | 0.3500 | +0.20 | +0.2000 |
-| 3  | 0.425 | 0.2792 | 0.525 | 0.4375 | +0.10 | +0.1583 |
-| 5  | 0.525 | 0.3017 | 0.575 | 0.4488 | +0.05 | +0.1471 |
-| 10 | 0.625 | 0.3135 | 0.625 | 0.4544 | +0.00 | +0.1408 |
+Benchmark: 40 curated cross-company questions.
 
-Key insight:
-- Chunk-level retrieval is substantially harder.
-- Reranking provides large MRR gains, meaning it promotes the correct evidence chunk toward the top.
-- Improvement is primarily ranking correction, not recall expansion.
+Metrics: - Recall@k - Mean Reciprocal Rank (MRR)
 
----
+Two evaluation levels: - Document-level (section retrieval) -
+Chunk-level (evidence retrieval)
 
-## Safety: Out-of-Distribution Handling
+Findings:
 
-Query example:
-"Explain Risk Factors of the company Tesla."
+-   Document retrieval is relatively easy.
+-   Chunk retrieval is significantly harder.
+-   Reranking meaningfully improves ranking quality at low k.
+-   Most gains appear in top-1 correction.
 
-Tesla is not indexed.
+This validates that ranking quality dominates depth expansion.
 
-System behavior:
+------------------------------------------------------------------------
 
-- No hallucinated Tesla information
-- Explicit insufficient-evidence response
-- Citation validation remains true
+# Safety: Out-of-Distribution Handling
 
-This demonstrates grounded refusal rather than hallucinated generation.
+When queried about a non-indexed entity:
 
----
+-   No hallucinated answer
+-   Explicit insufficient-evidence response
+-   Citation validation enforced
 
-## Project Structure
+Grounded refusal is structural, not prompt-based.
 
----
-```
-invest-rag/
-├── data/
-│   ├── README.md
-│   ├── processed/
-│   │   ├── build_config.json
-│   │   ├── chunks.jsonl
-│   │   └── chunks_manifest.json
-│   └── samples/
-│       └── sec_docs.jsonl
-│
-├── docs/
-│   ├── architecture.md
-│   ├── data_contract.md
-│   └── evaluation.md
-│
-├── eval/
-│   ├── questions.jsonl
-│   ├── results_vector_doc.json
-│   ├── results_vector_chunk.json
-│   ├── results_rerank_llm_doc.json
-│   ├── results_rerank_llm_chunk.json
-│   ├── fails_vector_doc_k1.jsonl
-│   ├── fails_vector_doc_k10.jsonl
-│   ├── fails_vector_chunk_k1.jsonl
-│   └── fails_vector_chunk_k10.jsonl
-│
-├── indexes/
-│   └── faiss/
-│       ├── index.bin
-│       ├── meta.jsonl
-│       ├── build_config.json
-│       └── chunks_manifest.json
-│
-├── logs/
-│   ├── retrieval_debug.jsonl
-│   └── run_logs.jsonl
-│
-├── notebooks/
-│   ├── 00_setup_and_ingest.ipynb
-│   ├── 01_build_vector_index.ipynb
-│   ├── 02_evaluate_retrieval.ipynb
-│   └── 03_rag_generate.ipynb
-│
-├── scripts/
-│   └── init_project.py
-│
-└── src/
-    ├── config.py
-    ├── __init__.py
-    │
-    ├── app/
-    │   ├── cli.py
-    │   ├── rag_runtime.py
-    │   └── __init__.py
-    │
-    ├── data_pipeline/
-    │   ├── io_utils.py
-    │   └── __init__.py
-    │
-    ├── retrieval/
-    │   ├── artifacts.py
-    │   ├── build_vector_index.py
-    │   ├── chunk_loader.py
-    │   ├── vector_store.py
-    │   └── __init__.py
-    │
-    ├── llm/
-    │   ├── embedding.py
-    │   ├── rerank.py
-    │   ├── generate.py
-    │   ├── context.py
-    │   └── __init__.py
-    │
-    └── eval/
-        ├── retrieval_eval.py
-        ├── retrieval_logging.py
-        ├── search_wrappers.py
-        └── __init__.py
-```
-### Key Directories
+------------------------------------------------------------------------
 
-- `src/` – Core application logic (retrieval, LLM, evaluation)
-- `data/` – Processed chunks and sample SEC filings
-- `indexes/` – FAISS vector index artifacts
-- `eval/` – Retrieval evaluation outputs
-- `docs/` – Architecture and design documentation
----
+# Engineering Considerations
 
-## What This Demonstrates
+-   Reproducible chunk manifests
+-   Logged retrieval debugging
+-   Modular directory structure
+-   CLI-based full pipeline execution
+-   Evaluation artifacts saved separately
 
-- Deterministic FAISS-based similarity search
-- Measurable retrieval benchmarking
-- Semantic reranking improvements
-- Document vs chunk-level evaluation
-- Strict citation-grounded generation
-- Safe handling of unsupported entities
+The system is structured like a small production service, not a research
+notebook.
 
-This project is structured to resemble a production-ready RAG system rather than a notebook prototype.
+------------------------------------------------------------------------
+
+# What This Demonstrates
+
+This project reflects how I approach retrieval systems:
+
+-   Separate concerns before optimizing
+-   Measure before improving
+-   Improve ranking before expanding search depth
+-   Prefer structural safety over prompt tricks
+-   Build modular systems that scale beyond a single dataset
+
+------------------------------------------------------------------------
+
+# Target Role Alignment
+
+This repository is designed to demonstrate readiness for:
+
+-   ML Engineer (Retrieval / Search)
+-   LLM Infrastructure Intern
+-   Applied AI Engineer
+-   Agent System Engineer
+
+The focus is not on prompt engineering, but on measurable system
+behavior.
