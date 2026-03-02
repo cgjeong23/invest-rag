@@ -86,7 +86,7 @@ def doc_to_chunks(doc, max_chars=450, overlap_sents=1):
         chunk_texts = chunk_sentences(sents, max_chars=max_chars, overlap_sents=overlap_sents)
 
     out = []
-    meta = {k: doc.get(k) for k in ["doc_id", "company", "year", "section", "source", "content"]}
+    meta = {k: doc.get(k) for k in ["doc_id", "company","year","section","source"]}
     for i, ct in enumerate(chunk_texts):
         out.append(
             {
