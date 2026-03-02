@@ -13,7 +13,7 @@ from src.llm.embedding import embed_texts
 from src.retrieval.chunk_loader import load_chunks_for_index
 from src.retrieval.vector_store import l2_normalize
 
-from src.retrieval.artifacts import build_chunks_manifest, write_json, utc_now_iso  # ✅ 추가
+from src.retrieval.artifacts import build_chunks_manifest, write_json, utc_now_iso  
 
 
 @dataclass(frozen=True)

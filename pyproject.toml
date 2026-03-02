@@ -6,7 +6,16 @@ build-backend = "setuptools.build_meta"
 name = "invest-rag"
 version = "0.1.0"
 requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.0.0",
+    "numpy>=1.23",
+    "faiss-cpu",
+    "tqdm>=4.0",
+    "python-dotenv>=1.0"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["src", "src.*"]
+where = ["src"]

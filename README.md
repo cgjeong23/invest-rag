@@ -7,16 +7,44 @@ Document-Level & Chunk-Level Benchmarking
 Strict Citation-Grounded Generation  
 
 ---
-## 🚀 Run the Full Pipeline (CLI)
+# 🚀 Run the Full Pipeline (CLI)
 
-You can run the full retrieval + rerank pipeline from the command line:
+You can run the full retrieval + rerank pipeline from the command line.
+
+---
+
+## 1️⃣ Install
 
 ```bash
-python src/app/cli.py \
+git clone https://github.com/cgjeong23/invest-rag.git
+cd invest-rag
+
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# macOS / Linux
+source venv/bin/activate
+
+pip install -e .
+```
+
+## 2️⃣ Generate Chunks from Sample SEC Docs
+```
+python scripts/make_chunks.py \
+    --in_path data/samples/sec_docs.jsonl \
+    --out_path data/processed/chunks.jsonl
+```
+
+## 3️⃣ Run the Full Retrieval + Rerank Pipeline
+```
+python -m src.app.cli \
     --query "Which company discusses ecosystem lock-in as a competitive moat?" \
     --top_k 5 \
     --rerank
 ```
+If the FAISS index does not exist, it will be built automatically.
 ---
 
 ## Overview
