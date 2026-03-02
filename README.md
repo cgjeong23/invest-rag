@@ -1,148 +1,234 @@
 # invest-rag
 
-Reproducible & Debuggable RAG Pipeline for Investment Research
+**Production-Structured RAG System with Measurable Retrieval Performance**
 
-FAISS (Inner Product + L2 Normalization)\
-Optional LLM Rerank\
-Grounded Generation with Strict Citation Validation
+Vector Retrieval + LLM Reranking  
+Document-Level & Chunk-Level Benchmarking  
+Strict Citation-Grounded Generation  
 
-------------------------------------------------------------------------
+---
 
 ## Overview
 
-`invest-rag` is a modular Retrieval-Augmented Generation (RAG) system
-designed for investment research.
+`invest-rag` is a reproducible Retrieval-Augmented Generation (RAG) system built over multiple SEC 10-K filings (2024).
 
-It focuses on:
+The goal of this project is not just to implement RAG, but to:
 
--   Reproducible indexing
--   Swappable retrieval strategies
--   Deterministic similarity search (Cosine via IP)
--   Strict evidence-grounded answer generation
+- Quantitatively measure retrieval quality (Recall@k, MRR)
+- Compare vector-only retrieval vs LLM-based reranking
+- Evaluate document-level vs chunk-level behavior
+- Enforce strict citation grounding
+- Demonstrate safe out-of-distribution handling
 
-The system separates retrieval, reranking, and generation for easier
-debugging and evaluation.
+All components (retrieval, rerank, generation, evaluation) are modular and independently testable.
 
-------------------------------------------------------------------------
+---
 
-## Demo
+## Dataset
 
-### Query
+Indexed SEC 10-K filings (2024):
 
-What supports AsterFoundry's pricing premium?
+- Apple
+- NVIDIA
+- Microsoft
+- Meta
+- AMD
 
-### Retrieved (Top-3)
+Granularity:
 
--   report_0005\
--   news_0012\
--   disclosure_0003
+- **Document-level:** SEC section (e.g., `apple_2024_item_1_business`)
+- **Chunk-level:** ~4000 deterministic semantic chunks
 
-### Final Answer (Grounded)
+Each chunk contains:
 
-AsterFoundry maintains pricing power due to process differentiation and
-negotiated wafer allocation advantages.\
-\[report_0005\]
+- chunk_id
+- doc_id
+- company
+- year
+- section
+- content
 
-------------------------------------------------------------------------
+---
 
-## Architecture
+## System Architecture
 
-Documents\
-→ Chunking\
-→ Embedding\
-→ L2 Normalization\
-→ FAISS Index (Inner Product)\
-→ Top-k Retrieval\
-→ (Optional) LLM Rerank\
-→ Grounded Generation\
-→ Citation Validation
+                ┌────────────────────┐
+                │   SEC 10-K Files   │
+                └─────────┬──────────┘
+                          ↓
+                ┌────────────────────┐
+                │   Chunking Layer   │
+                │  (~4000 chunks)    │
+                └─────────┬──────────┘
+                          ↓
+                ┌────────────────────┐
+                │   Embedding Model  │
+                │ (L2 Normalization) │
+                └─────────┬──────────┘
+                          ↓
+                ┌────────────────────┐
+                │     FAISS Index    │
+                │   (Inner Product)  │
+                └─────────┬──────────┘
+                          ↓
+                ┌────────────────────┐
+                │   Vector Retrieval │
+                └─────────┬──────────┘
+                          ↓
+                ┌────────────────────┐
+                │   LLM Reranker     │ (optional)
+                └─────────┬──────────┘
+                          ↓
+                ┌────────────────────┐
+                │  Grounded Generate │
+                │ + Citation Check   │
+                └────────────────────┘
 
-------------------------------------------------------------------------
+---
 
-## Key Design Decisions
+## Evaluation Results
 
-### 1️⃣ Cosine Similarity via Inner Product
+Evaluation benchmark: 40 curated cross-company questions.
 
-All vectors are L2-normalized before indexing.\
-This enables cosine similarity while using FAISS Inner Product search
-for efficiency.
+### Document-Level Performance
 
-### 2️⃣ Artifact-Driven Retrieval
+| k  | Vector R@k | Vector MRR | Rerank R@k | Rerank MRR | ΔRecall | ΔMRR |
+|----|------------|------------|------------|------------|---------|------|
+| 1  | 0.750 | 0.7500 | 0.875 | 0.8750 | +0.125 | +0.1250 |
+| 3  | 0.850 | 0.8000 | 0.925 | 0.9000 | +0.075 | +0.1000 |
+| 5  | 0.900 | 0.8188 | 0.950 | 0.9125 | +0.050 | +0.0938 |
+| 10 | 0.975 | 0.8375 | 0.975 | 0.9208 | +0.000 | +0.0833 |
 
-Index files (`index.bin`, `meta.jsonl`) are treated as reproducible
-artifacts.\
-Retrieval logic is independent from generation.
+Key insight:
+- High recall from vector retriever (R@10 = 0.975)
+- Significant top-1 improvement from LLM reranking
+- Rerank improves ranking quality without increasing candidate depth
 
-### 3️⃣ Strict Citation Enforcement
+---
 
-The generator is forced to cite retrieved `doc_id`s only.\
-A validation layer prevents hallucinated references.
+### Chunk-Level Performance
 
-------------------------------------------------------------------------
+| k  | Vector R@k | Vector MRR | Rerank R@k | Rerank MRR | ΔRecall | ΔMRR |
+|----|------------|------------|------------|------------|---------|------|
+| 1  | 0.150 | 0.1500 | 0.350 | 0.3500 | +0.20 | +0.2000 |
+| 3  | 0.425 | 0.2792 | 0.525 | 0.4375 | +0.10 | +0.1583 |
+| 5  | 0.525 | 0.3017 | 0.575 | 0.4488 | +0.05 | +0.1471 |
+| 10 | 0.625 | 0.3135 | 0.625 | 0.4544 | +0.00 | +0.1408 |
+
+Key insight:
+- Chunk-level retrieval is substantially harder.
+- Reranking provides large MRR gains, meaning it promotes the correct evidence chunk toward the top.
+- Improvement is primarily ranking correction, not recall expansion.
+
+---
+
+## Safety: Out-of-Distribution Handling
+
+Query example:
+"Explain Risk Factors of the company Tesla."
+
+Tesla is not indexed.
+
+System behavior:
+
+- No hallucinated Tesla information
+- Explicit insufficient-evidence response
+- Citation validation remains true
+
+This demonstrates grounded refusal rather than hallucinated generation.
+
+---
 
 ## Project Structure
 
-invest-rag/ │ ├── data/ │ └── samples/ │ ├── indexes/ │ └── faiss/ │ ├──
-scripts/ │ ├── build_chunks.py │ ├── build_index.py │ └── query.py │ ├──
-src/ │ ├── retrieval/ │ ├── generation/ │ └── evaluation/ │ └──
-README.md
+---
+invest-rag/
+├── data/
+│   ├── README.md
+│   ├── processed/
+│   │   ├── build_config.json
+│   │   ├── chunks.jsonl
+│   │   └── chunks_manifest.json
+│   └── samples/
+│       └── sec_docs.jsonl
+│
+├── docs/
+│   ├── architecture.md
+│   ├── data_contract.md
+│   └── evaluation.md
+│
+├── eval/
+│   ├── questions.jsonl
+│   ├── results_vector_doc.json
+│   ├── results_vector_chunk.json
+│   ├── results_rerank_llm_doc.json
+│   ├── results_rerank_llm_chunk.json
+│   ├── fails_vector_doc_k1.jsonl
+│   ├── fails_vector_doc_k10.jsonl
+│   ├── fails_vector_chunk_k1.jsonl
+│   └── fails_vector_chunk_k10.jsonl
+│
+├── indexes/
+│   └── faiss/
+│       ├── index.bin
+│       ├── meta.jsonl
+│       ├── build_config.json
+│       └── chunks_manifest.json
+│
+├── logs/
+│   ├── retrieval_debug.jsonl
+│   └── run_logs.jsonl
+│
+├── notebooks/
+│   ├── 00_setup_and_ingest.ipynb
+│   ├── 01_build_vector_index.ipynb
+│   ├── 02_evaluate_retrieval.ipynb
+│   └── 03_rag_generate.ipynb
+│
+├── scripts/
+│   └── init_project.py
+│
+└── src/
+    ├── config.py
+    ├── __init__.py
+    │
+    ├── app/
+    │   ├── cli.py
+    │   ├── rag_runtime.py
+    │   └── __init__.py
+    │
+    ├── data_pipeline/
+    │   ├── io_utils.py
+    │   └── __init__.py
+    │
+    ├── retrieval/
+    │   ├── artifacts.py
+    │   ├── build_vector_index.py
+    │   ├── chunk_loader.py
+    │   ├── vector_store.py
+    │   └── __init__.py
+    │
+    ├── llm/
+    │   ├── embedding.py
+    │   ├── rerank.py
+    │   ├── generate.py
+    │   ├── context.py
+    │   └── __init__.py
+    │
+    └── eval/
+        ├── retrieval_eval.py
+        ├── retrieval_logging.py
+        ├── search_wrappers.py
+        └── __init__.py
+---
 
-------------------------------------------------------------------------
+## What This Demonstrates
 
-## Quickstart
+- Deterministic FAISS-based similarity search
+- Measurable retrieval benchmarking
+- Semantic reranking improvements
+- Document vs chunk-level evaluation
+- Strict citation-grounded generation
+- Safe handling of unsupported entities
 
-Install dependencies:
-
-pip install -r requirements.txt
-
-Build index:
-
-python scripts/build_index.py
-
-Run query:
-
-python scripts/query.py --query "What drives ASTF pricing?"
-
-------------------------------------------------------------------------
-
-## Evaluation
-
-Supports:
-
--   Vector-only baseline retrieval
--   Optional LLM rerank comparison
--   Top-k overlap analysis
--   Manual answer validation
-
-Designed to make retrieval quality measurable.
-
-------------------------------------------------------------------------
-
-## Roadmap
-
--   Add reranker scoring metrics
--   Add retrieval benchmark dataset
--   Add streaming interface
--   Add lightweight web UI
-
-------------------------------------------------------------------------
-
-## Why This Project
-
-Most RAG demos blur retrieval and generation.
-
-This project enforces:
-
--   Retrieval transparency
--   Reproducibility
--   Grounded generation discipline
-
-It is designed as a minimal but production-structured RAG system.
-
-## Documentation
-
-For detailed technical documentation:
-
-- Architecture design → docs/architecture.md
-- Data contract specification → docs/data_contract.md
-- Evaluation methodology → docs/evaluation.md
+This project is structured to resemble a production-ready RAG system rather than a notebook prototype.
