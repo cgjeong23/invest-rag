@@ -16,6 +16,7 @@ python src/app/cli.py \
     --query "Which company discusses ecosystem lock-in as a competitive moat?" \
     --top_k 5 \
     --rerank
+```
 ---
 
 ## Overview
