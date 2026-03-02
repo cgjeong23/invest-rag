@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-# config 값이 없더라도 깨지지 않게 fallback
 try:
     from src.config import MAX_CHARS_PER_DOC, MAX_CONTEXT_CHARS
 except Exception:
@@ -12,7 +11,7 @@ except Exception:
 
 
 def _clean_text(x: str) -> str:
-    # 줄바꿈/여백 정리 (LLM이 읽기 좋게)
+    # Change line / Erase space for LLM readability
     return " ".join((x or "").replace("\r", "\n").split())
 
 

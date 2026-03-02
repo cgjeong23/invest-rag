@@ -11,7 +11,6 @@ SearchFn = Callable[[str, int], list[dict]]  # query, k -> ranked results (dicts
 
 
 def read_questions(path: Path) -> list[dict]:
-    # (중복 싫으면 src.data_pipeline.io_utils.read_jsonl로 대체 가능)
     rows = []
     with path.open("r", encoding="utf-8") as f:
         for line in f:
@@ -42,7 +41,7 @@ def evaluate_retrieval(
     k: int,
     search_fn: SearchFn,
     id_key: str = "doc_id",           # "doc_id" (doc-level) or "chunk_id" (chunk-level)
-    dedupe: bool = True,              # doc-level 평가면 True 추천
+    dedupe: bool = True,            
     save_fail_path: Path | None = None,
 ):
     recalls: list[float] = []
@@ -59,17 +58,17 @@ def evaluate_retrieval(
             skipped_no_gold += 1
             continue
 
-        res = search_fn(query, k)  # ✅ evaluator가 컷오프 k 통제
+        res = search_fn(query, k)  #Evaluator Cutoff K
         pred_ids = [r.get(id_key) for r in res if r.get(id_key)]
 
         topk = _dedupe_keep_order(pred_ids, k) if dedupe else pred_ids[:k]
 
-        # ✅ Recall@k (진짜 recall)
+        #Recall@k 
         hit_count = len(set(topk) & gold)
         recall = hit_count / len(gold)
         recalls.append(recall)
 
-        # ✅ MRR@k
+        #MRR@k
         rr = 0.0
         for i, pid in enumerate(topk, start=1):
             if pid in gold:

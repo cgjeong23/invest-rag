@@ -9,7 +9,6 @@ from src.config import RERANK_MODEL
 client = OpenAI()
 
 def _compact_candidate(r: dict) -> dict:
-    # 너무 길면 느려지니 필요한 필드 + preview만
     return {
         "rank": r.get("rank"),
         "doc_id": r.get("doc_id"),

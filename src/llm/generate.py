@@ -7,7 +7,6 @@ from src.config import GEN_MODEL
 client = OpenAI()
 
 def extract_cited_doc_ids(text: str) -> set[str]:
-    # 너 포맷이 [doc_id] 라면 이걸로 충분
     return set(re.findall(r"\[([^\]]+)\]", text or ""))
 
 def validate_citations(answer: str, retrieved: list[dict]) -> bool:

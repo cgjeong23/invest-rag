@@ -46,9 +46,9 @@ def make_llm_rerank_search_fn(
 ) -> SearchFn:
     """
     LLM rerank wrapper.
-    - 후보는 base_search_fn(query, k_vec)로 뽑고
-    - llm_rerank_top1이 고른 후보를 1등으로 올린 뒤
-    - 최종 top-k 반환
+    - Pick candidate based on base_search_fn(query, k_vec)
+    - Rerank candidate with llm_rerank_top1
+    - Return Final topK
     """
     def search_fn(query: str, k: int) -> List[Dict[str, Any]]:
         candidates = base_search_fn(query, k_vec)
